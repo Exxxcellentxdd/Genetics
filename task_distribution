@@ -1,0 +1,78 @@
+import random
+
+with open("input.txt", "r") as file:
+    lines = file.readlines()
+    
+N = int(lines[0].strip())  
+categories = list(map(int, lines[1].strip().split()))  
+estimate_times = list(map(float, lines[2].strip().split()))
+M = int(lines[3].strip())
+coefficients = [list(map(float, lines[i].strip().split())) for i in range(4, 4 + M)] 
+tasks = [(categories[i], estimate_times[i]) for i in range(N)]
+
+population_size = 100  
+population = []
+
+# случайно распределяем задачи для разрабов
+for _ in range(population_size):
+    distribution = [random.randint(0, M - 1) for _ in range(len(tasks))]  
+    population.append(distribution)
+
+generations = 300
+mutation_rate = 0.05
+
+# fitness пошел
+for generation in range(generations):
+    fitness_scores = []
+    for individual in population:
+        times = [0] * M
+        for task_idx, developer_id in enumerate(individual):
+            category, estimate_time = tasks[task_idx]
+            real_time = estimate_time * coefficients[developer_id][category - 1]
+            times[developer_id] += real_time
+        fitness_scores.append(max(times))  
+
+
+    sorted_population = [x for _, x in sorted(zip(fitness_scores, population))]
+
+    # берём половину лучших
+    population = sorted_population[:population_size // 2]
+
+    
+    new_population = []
+    while len(new_population) < population_size:
+
+        # скрещиваем
+        parent1 = random.choice(population)
+        parent2 = random.choice(population)
+        
+        
+        point = len(tasks) // 2
+        child = parent1[:point] + parent2[point:]
+        
+        # мутация
+        if random.random() < mutation_rate:
+            task_idx = random.randint(0, len(tasks) - 1)
+            child[task_idx] = random.randint(0, M - 1)
+        
+        new_population.append(child)
+    
+    population = new_population # новенький после скрещивания и мутации
+
+# выбираем лучшее решение
+best_individual = population[0]
+max_time = float('inf')
+
+for individual in population:
+    times = [0] * M
+    for task_idx, developer_id in enumerate(individual):
+        category, estimate_time = tasks[task_idx]
+        real_time = estimate_time * coefficients[developer_id][category - 1]
+        times[developer_id] += real_time
+    time = max(times)
+    if time < max_time:
+        best_time = max_time
+        best_individual = individual
+
+with open("output.txt", "w") as file:
+    file.write(" ".join(map(lambda x: str(x + 1), best_individual)) + "\n")
